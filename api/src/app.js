@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const errorMiddleware = require('./middleware/errorMiddleware');
 
 const app = express();
 app.use(cors());
@@ -12,5 +13,9 @@ app.get('/api/health', (req, res) => {
     database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
   });
 });
+
+app.use('/api/auth', require('./routes/authRoutes'));
+
+app.use(errorMiddleware);
 
 module.exports = app;
