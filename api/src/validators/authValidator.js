@@ -15,6 +15,11 @@ exports.updateMeRules = [
   body('fullName').optional().trim().notEmpty().withMessage('Họ tên không được để trống'),
 ];
 
+exports.changePasswordRules = [
+  body('currentPassword').notEmpty().withMessage('Vui lòng nhập mật khẩu hiện tại'),
+  body('newPassword').isLength({ min: 6 }).withMessage('Mật khẩu mới tối thiểu 6 ký tự'),
+];
+
 exports.handleValidation = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {

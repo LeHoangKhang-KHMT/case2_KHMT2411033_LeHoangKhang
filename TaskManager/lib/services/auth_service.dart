@@ -37,4 +37,13 @@ class AuthService {
     if (token != null) await TokenStorage.save(token, user.fullName);
     return user;
   }
+    Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _api.put('/auth/change-password', {
+      'currentPassword': currentPassword,
+      'newPassword': newPassword,
+    });
+  }
 }

@@ -72,6 +72,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) setState(() => _saving = false);
     }
   }
+  
+    Future<void> _changePassword() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => const _ChangePasswordDialog(),
+    );
+    if (ok == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đổi mật khẩu thành công')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -143,12 +155,143 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     )
                                   : const Text('Lưu thay đổi'),
                             ),
+                            const SizedBox(height: 12),
+                            OutlinedButton.icon(
+                              onPressed: _changePassword,
+                              icon: const Icon(Icons.lock_reset),
+                              label: const Text('Đổi mật khẩu'),
+                            ),
                           ],
                         ),
                       ),
                     ),
                   ),
                 ),
+    );
+  }
+}
+
+class _ChangePasswordDialog extends StatefulWidget {
+  const _ChangePasswordDialog();
+
+  @override
+  State<_ChangePasswordDialog> createState() => _ChangePasswordDialogState();
+}
+
+class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _currentCtrl = TextEditingController();
+  final _newCtrl = TextEditingController();
+  final _confirmCtrl = TextEditingController();
+  final _auth = AuthService();
+
+  bool _loading = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _currentCtrl.dispose();
+    _newCtrl.dispose();
+    _confirmCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      await _auth.changePassword(
+        currentPassword: _currentCtrl.text,
+        newPassword: _newCtrl.text,
+      );
+      if (!mounted) return;
+      Navigator.of(context).pop(true);
+    } on ApiException catch (e) {
+      setState(() => _error = e.message);
+    } catch (_) {
+      setState(() => _error = 'Không kết nối được máy chủ');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Đổi mật khẩu'),
+      content: SizedBox(
+        width: 360,
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: _currentCtrl,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Mật khẩu hiện tại',
+                    prefixIcon: Icon(Icons.lock_outline),
+                  ),
+                  validator: (v) => Validators.required(v, 'Mật khẩu hiện tại'),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _newCtrl,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Mật khẩu mới',
+                    prefixIcon: Icon(Icons.lock_reset),
+                  ),
+                  validator: Validators.password,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _confirmCtrl,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Xác nhận mật khẩu mới',
+                    prefixIcon: Icon(Icons.lock_reset),
+                  ),
+                  validator: (v) =>
+                      v != _newCtrl.text ? 'Mật khẩu xác nhận không khớp' : null,
+                ),
+                if (_error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Text(
+                      _error!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _loading ? null : () => Navigator.of(context).pop(false),
+          child: const Text('Hủy'),
+        ),
+        TextButton(
+          onPressed: _loading ? null : _submit,
+          child: _loading
+              ? const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Đổi mật khẩu'),
+        ),
+      ],
     );
   }
 }
