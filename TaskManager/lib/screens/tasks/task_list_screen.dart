@@ -8,6 +8,7 @@ import '../../widgets/task_card.dart';
 import '../auth/login_screen.dart';
 import '../profile/profile_screen.dart';
 import 'task_create_screen.dart';
+import 'task_detail_screen.dart';
 
 class TaskListScreen extends StatefulWidget {
   const TaskListScreen({super.key});
@@ -209,7 +210,17 @@ class _TaskListViewState extends State<_TaskListView> {
                 constraints: const BoxConstraints(maxWidth: 640),
                 child: i == 0
                     ? _SummaryRow(tasks: tasks)
-                    : TaskCard(task: tasks[i - 1]),
+                      : TaskCard(
+                        task: tasks[i - 1],
+                        onTap: () async {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => TaskDetailScreen(taskId: tasks[i - 1].id),
+                            ),
+                          );
+                          if (mounted) _refresh();
+                        },
+                      ),
               ),
             ),
           ),

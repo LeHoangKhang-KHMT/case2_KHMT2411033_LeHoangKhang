@@ -29,4 +29,12 @@ class TaskService {
     final list = data['tasks'] as List<dynamic>;
     return list.map((e) => Task.fromJson(e as Map<String, dynamic>)).toList();
   }
+
+    Future<TaskDetail> getTask(String id) async {
+    final data = await _api.get('/tasks/$id');
+    return TaskDetail(
+      task: Task.fromJson(data['task'] as Map<String, dynamic>),
+      access: TaskAccess.fromJson(data['access'] as Map<String, dynamic>),
+    );
+  }
 }

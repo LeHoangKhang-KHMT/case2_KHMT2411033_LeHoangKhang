@@ -8,6 +8,7 @@ const router = express.Router();
 
 router.use(authMiddleware);
 router.get('/', taskController.listTasks);
+router.get('/:id', taskController.getTask);
 router.post('/', createTaskRules, handleValidation, taskController.createTask);
 
 module.exports = router;

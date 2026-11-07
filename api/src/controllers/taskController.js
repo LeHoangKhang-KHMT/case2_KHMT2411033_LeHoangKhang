@@ -1,4 +1,5 @@
 const Task = require('../models/Task');
+const taskService = require('../services/taskService');
 
 exports.createTask = async (req, res, next) => {
   try {
@@ -40,6 +41,33 @@ exports.listTasks = async (req, res, next) => {
 
     const tasks = await Task.find(filter).sort({ createdAt: -1 });
     res.json({ tasks });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.getTask = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!taskService.isValidId(id)) {
+      return res.status(400).json({ message: 'Mã công việc không hợp lệ' });
+    }
+
+    const task = await Task.findById(id)
+      .populate('createdBy', 'fullName email')
+      .populate('assigneeIds', 'fullName email')
+      .populate('primaryAssigneeId', 'fullName email');
+
+    if (!task) {
+      return res.status(404).json({ message: 'Không tìm thấy công việc' });
+    }
+
+    const access = taskService.getAccess(task, req.user._id);
+    if (!access) {
+      return res.status(403).json({ message: 'Bạn không có quyền truy cập công việc này' });
+    }
+
+    res.json({ task, access });
   } catch (err) {
     next(err);
   }
