@@ -24,4 +24,9 @@ class TaskService {
     final data = await _api.post('/tasks', body);
     return Task.fromJson(data['task'] as Map<String, dynamic>);
   }
+    Future<List<Task>> listTasks({String scope = 'all'}) async {
+    final data = await _api.get('/tasks?scope=$scope');
+    final list = data['tasks'] as List<dynamic>;
+    return list.map((e) => Task.fromJson(e as Map<String, dynamic>)).toList();
+  }
 }
