@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../utils/constants.dart';
+import '../utils/token_storage.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -12,17 +13,22 @@ class ApiException implements Exception {
 }
 
 class ApiClient {
-  Map<String, String> _headers() => {'Content-Type': 'application/json'};
+  Future<Map<String, String>> _headers() async {
+    final headers = {'Content-Type': 'application/json'};
+    final token = await TokenStorage.readToken();
+    if (token != null) headers['Authorization'] = 'Bearer $token';
+    return headers;
+  }
 
   Future<Map<String, dynamic>> get(String path) async {
-    final res = await http.get(Uri.parse('$kBaseUrl$path'), headers: _headers());
+    final res = await http.get(Uri.parse('$kBaseUrl$path'), headers: await _headers());
     return _handle(res);
   }
 
   Future<Map<String, dynamic>> post(String path, Map<String, dynamic> body) async {
     final res = await http.post(
       Uri.parse('$kBaseUrl$path'),
-      headers: _headers(),
+      headers: await _headers(),
       body: jsonEncode(body),
     );
     return _handle(res);

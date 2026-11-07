@@ -6,6 +6,11 @@ exports.registerRules = [
   body('password').isLength({ min: 6 }).withMessage('Mat khau toi thieu 6 ky tu'),
 ];
 
+exports.loginRules = [
+  body('email').isEmail().withMessage('Email khong hop le'),
+  body('password').notEmpty().withMessage('Vui long nhap mat khau'),
+];
+
 exports.handleValidation = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
