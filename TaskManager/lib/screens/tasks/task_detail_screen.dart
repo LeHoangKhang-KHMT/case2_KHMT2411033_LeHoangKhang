@@ -5,6 +5,7 @@ import '../../services/api_client.dart';
 import '../../services/task_service.dart';
 import '../../widgets/priority_badge.dart';
 import '../../widgets/status_badge.dart';
+import 'task_edit_screen.dart';
 
 class TaskDetailScreen extends StatefulWidget {
   final String taskId;
@@ -28,38 +29,66 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     setState(() => _future = _service.getTask(widget.taskId));
   }
 
+  Future<void> _edit(Task task) async {
+    final updated = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => TaskEditScreen(task: task)),
+    );
+    if (updated == true && mounted) {
+      _reload();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cập nhật công việc thành công')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Chi tiết công việc')),
-      body: FutureBuilder<TaskDetail>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    return FutureBuilder<TaskDetail>(
+      future: _future,
+      builder: (context, snapshot) {
+        final detail = snapshot.data;
 
-          if (snapshot.hasError) {
-            final err = snapshot.error;
-            final msg = err is ApiException ? err.message : 'Không kết nối được máy chủ';
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.grey),
-                  const SizedBox(height: 12),
-                  Text(msg),
-                  const SizedBox(height: 12),
-                  OutlinedButton(onPressed: _reload, child: const Text('Thử lại')),
-                ],
-              ),
-            );
-          }
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Chi tiết công việc'),
+            actions: [
+              if (detail != null && detail.access.canEdit)
+                IconButton(
+                  tooltip: 'Chỉnh sửa',
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: () => _edit(detail.task),
+                ),
+            ],
+          ),
+          body: Builder(
+            builder: (context) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-          final detail = snapshot.data!;
-          return _DetailBody(task: detail.task, access: detail.access);
-        },
-      ),
+              if (snapshot.hasError) {
+                final err = snapshot.error;
+                final msg =
+                    err is ApiException ? err.message : 'Không kết nối được máy chủ';
+                return Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.error_outline, size: 48, color: Colors.grey),
+                      const SizedBox(height: 12),
+                      Text(msg),
+                      const SizedBox(height: 12),
+                      OutlinedButton(onPressed: _reload, child: const Text('Thử lại')),
+                    ],
+                  ),
+                );
+              }
+
+              return _DetailBody(task: detail!.task, access: detail.access);
+            },
+          ),
+        );
+      },
     );
   }
 }

@@ -37,4 +37,22 @@ class TaskService {
       access: TaskAccess.fromJson(data['access'] as Map<String, dynamic>),
     );
   }
+
+    Future<Task> updateTask(
+    String id, {
+    required String title,
+    required String description,
+    required String priority,
+    DateTime? startDate,
+    DateTime? dueDate,
+  }) async {
+    final data = await _api.put('/tasks/$id', {
+      'title': title,
+      'description': description,
+      'priority': priority,
+      'startDate': startDate == null ? null : _apiDate.format(startDate),
+      'dueDate': dueDate == null ? null : _apiDate.format(dueDate),
+    });
+    return Task.fromJson(data['task'] as Map<String, dynamic>);
+  }
 }
