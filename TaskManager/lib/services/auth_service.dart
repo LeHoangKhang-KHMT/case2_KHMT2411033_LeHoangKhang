@@ -1,3 +1,4 @@
+import '../utils/token_storage.dart';
 import 'api_client.dart';
 
 class AuthService {
@@ -13,5 +14,13 @@ class AuthService {
       'email': email,
       'password': password,
     });
+  }
+
+  Future<String> login({required String email, required String password}) async {
+    final data = await _api.post('/auth/login', {'email': email, 'password': password});
+    final user = data['user'] as Map<String, dynamic>;
+    final fullName = user['fullName'] as String;
+    await TokenStorage.save(data['token'] as String, fullName);
+    return fullName;
   }
 }

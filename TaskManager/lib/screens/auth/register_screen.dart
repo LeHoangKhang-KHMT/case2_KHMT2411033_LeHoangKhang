@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
 import '../../utils/validators.dart';
+import '../../widgets/auth_scaffold.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -48,7 +49,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Dang ky thanh cong')),
       );
-      _formKey.currentState!.reset();
+            Navigator.of(context).pop();
     } on ApiException catch (e) {
       setState(() => _error = e.message);
     } catch (_) {
@@ -58,72 +59,81 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  @override
+    @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Dang ky tai khoan')),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  TextFormField(
-                    controller: _nameCtrl,
-                    decoration: const InputDecoration(labelText: 'Ho ten'),
-                    validator: (v) => Validators.required(v, 'Ho ten'),
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _emailCtrl,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(labelText: 'Email'),
-                    validator: Validators.email,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _passCtrl,
-                    obscureText: true,
-                    decoration: const InputDecoration(labelText: 'Mat khau'),
-                    validator: Validators.password,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _confirmCtrl,
-                    obscureText: true,
-                    decoration: const InputDecoration(labelText: 'Xac nhan mat khau'),
-                    validator: (v) =>
-                        v != _passCtrl.text ? 'Mat khau xac nhan khong khop' : null,
-                  ),
-                  const SizedBox(height: 16),
-                  if (_error != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Text(
-                        _error!,
-                        style: TextStyle(color: Theme.of(context).colorScheme.error),
-                      ),
-                    ),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: _loading ? null : _submit,
-                      child: _loading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Dang ky'),
-                    ),
-                  ),
-                ],
+    return AuthScaffold(
+      title: 'Tạo tài khoản',
+      subtitle: 'Bắt đầu quản lý và giao việc cho nhóm',
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextFormField(
+              controller: _nameCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Họ tên',
+                prefixIcon: Icon(Icons.person_outline),
               ),
+              validator: (v) => Validators.required(v, 'Họ tên'),
             ),
-          ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _emailCtrl,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                prefixIcon: Icon(Icons.email_outlined),
+              ),
+              validator: Validators.email,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _passCtrl,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Mật khẩu',
+                prefixIcon: Icon(Icons.lock_outline),
+              ),
+              validator: Validators.password,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _confirmCtrl,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Xác nhận mật khẩu',
+                prefixIcon: Icon(Icons.lock_reset),
+              ),
+              validator: (v) =>
+                  v != _passCtrl.text ? 'Mật khẩu xác nhận không khớp' : null,
+            ),
+            const SizedBox(height: 16),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  _error!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+            FilledButton(
+              onPressed: _loading ? null : _submit,
+              child: _loading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Đăng ký'),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Đã có tài khoản? Đăng nhập'),
+            ),
+          ],
         ),
       ),
     );
