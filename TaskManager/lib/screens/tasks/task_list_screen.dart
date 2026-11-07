@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../utils/token_storage.dart';
 import '../auth/login_screen.dart';
 import '../profile/profile_screen.dart';
+import 'task_create_screen.dart';
 
 class TaskListScreen extends StatefulWidget {
   const TaskListScreen({super.key});
@@ -74,6 +75,20 @@ class _TaskListScreenState extends State<TaskListScreen> {
         ],
       ),
       body: Center(child: Text('Xin chào, $_name')),
+            floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          final created = await Navigator.of(context).push<bool>(
+            MaterialPageRoute(builder: (_) => const TaskCreateScreen()),
+          );
+          if (created == true && context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Tạo công việc thành công')),
+            );
+          }
+        },
+        icon: const Icon(Icons.add),
+        label: const Text('Tạo công việc'),
+      ),
     );
   }
 }
