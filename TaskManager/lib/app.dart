@@ -14,6 +14,12 @@ class TaskManagerApp extends StatelessWidget {
       theme: ThemeData(
         colorSchemeSeed: Colors.indigo,
         useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFF4F5FB),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+        ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
