@@ -46,3 +46,19 @@ exports.login = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.getMe = async (req, res) => {
+  res.json({ user: toPublicUser(req.user) });
+};
+
+exports.updateMe = async (req, res, next) => {
+  try {
+    const { fullName, avatarUrl } = req.body;
+    if (fullName !== undefined) req.user.fullName = fullName;
+    if (avatarUrl !== undefined) req.user.avatarUrl = avatarUrl;
+    await req.user.save();
+    res.json({ message: 'Cập nhật thành công', user: toPublicUser(req.user) });
+  } catch (err) {
+    next(err);
+  }
+};

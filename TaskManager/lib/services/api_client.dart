@@ -34,6 +34,15 @@ class ApiClient {
     return _handle(res);
   }
 
+    Future<Map<String, dynamic>> put(String path, Map<String, dynamic> body) async {
+    final res = await http.put(
+      Uri.parse('$kBaseUrl$path'),
+      headers: await _headers(),
+      body: jsonEncode(body),
+    );
+    return _handle(res);
+  }
+
   Map<String, dynamic> _handle(http.Response res) {
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     if (res.statusCode >= 200 && res.statusCode < 300) return data;

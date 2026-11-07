@@ -11,6 +11,10 @@ exports.loginRules = [
   body('password').notEmpty().withMessage('Vui long nhap mat khau'),
 ];
 
+exports.updateMeRules = [
+  body('fullName').optional().trim().notEmpty().withMessage('Họ tên không được để trống'),
+];
+
 exports.handleValidation = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
