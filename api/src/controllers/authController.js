@@ -46,3 +46,39 @@ exports.login = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.getMe = async (req, res) => {
+  res.json({ user: toPublicUser(req.user) });
+};
+
+exports.updateMe = async (req, res, next) => {
+  try {
+    const { fullName, avatarUrl } = req.body;
+    if (fullName !== undefined) req.user.fullName = fullName;
+    if (avatarUrl !== undefined) req.user.avatarUrl = avatarUrl;
+    await req.user.save();
+    res.json({ message: 'Cập nhật thành công', user: toPublicUser(req.user) });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    const ok = await bcrypt.compare(currentPassword, req.user.passwordHash);
+    if (!ok) {
+      return res.status(400).json({ message: 'Mật khẩu hiện tại không đúng' });
+    }
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ message: 'Mật khẩu mới phải khác mật khẩu hiện tại' });
+    }
+
+    req.user.passwordHash = await bcrypt.hash(newPassword, 10);
+    await req.user.save();
+    res.json({ message: 'Đổi mật khẩu thành công' });
+  } catch (err) {
+    next(err);
+  }
+};

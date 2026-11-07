@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../utils/token_storage.dart';
 import '../auth/login_screen.dart';
+import '../profile/profile_screen.dart';
 
 class TaskListScreen extends StatefulWidget {
   const TaskListScreen({super.key});
@@ -54,6 +55,17 @@ class _TaskListScreenState extends State<TaskListScreen> {
       appBar: AppBar(
         title: const Text('Công việc'),
         actions: [
+                    IconButton(
+            tooltip: 'Thông tin cá nhân',
+            icon: const Icon(Icons.person_outline),
+            onPressed: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
+              final n = await TokenStorage.readName();
+              if (mounted) setState(() => _name = n ?? '');
+            },
+          ),
           IconButton(
             tooltip: 'Đăng xuất',
             icon: const Icon(Icons.logout),
