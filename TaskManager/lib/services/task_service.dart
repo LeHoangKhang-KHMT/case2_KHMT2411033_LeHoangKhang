@@ -55,4 +55,8 @@ class TaskService {
     });
     return Task.fromJson(data['task'] as Map<String, dynamic>);
   }
+
+    Future<void> deleteTask(String id) async {
+    await _api.delete('/tasks/$id');
+  }
 }

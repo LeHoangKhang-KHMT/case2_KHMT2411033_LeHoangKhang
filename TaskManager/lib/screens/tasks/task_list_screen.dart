@@ -213,12 +213,18 @@ class _TaskListViewState extends State<_TaskListView> {
                       : TaskCard(
                         task: tasks[i - 1],
                         onTap: () async {
-                          await Navigator.of(context).push(
+                          final result = await Navigator.of(context).push<String>(
                             MaterialPageRoute(
                               builder: (_) => TaskDetailScreen(taskId: tasks[i - 1].id),
                             ),
                           );
-                          if (mounted) _refresh();
+                          if (!mounted) return;
+                          _refresh();
+                          if (result == 'deleted') {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Đã xóa công việc')),
+                            );
+                          }
                         },
                       ),
               ),
