@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../models/task.dart';
 import '../../services/api_client.dart';
@@ -19,6 +20,12 @@ class TaskListScreen extends StatefulWidget {
 
 class _TaskListScreenState extends State<TaskListScreen> {
   int _version = 0;
+  String _query = '';
+  String? _status;
+  String? _priority;
+  String _sort = 'createdAt:desc';
+  Timer? _debounce;
+  final _searchCtrl = TextEditingController();
 
   static const _tabs = [
     ('all', 'Tất cả'),
@@ -27,7 +34,54 @@ class _TaskListScreenState extends State<TaskListScreen> {
     ('shared', 'Được chia sẻ'),
   ];
 
+  static const _statusOptions = {
+    '': 'Tất cả trạng thái',
+    'todo': 'Chưa thực hiện',
+    'in_progress': 'Đang thực hiện',
+    'completed': 'Đã hoàn thành',
+  };
+
+  static const _priorityOptions = {
+    '': 'Mọi mức ưu tiên',
+    'low': 'Thấp',
+    'medium': 'Trung bình',
+    'high': 'Cao',
+  };
+
+  static const _sortOptions = {
+    'createdAt:desc': 'Mới tạo nhất',
+    'createdAt:asc': 'Cũ nhất',
+    'dueDate:asc': 'Hạn gần nhất',
+    'dueDate:desc': 'Hạn xa nhất',
+    'priority:desc': 'Ưu tiên cao trước',
+    'priority:asc': 'Ưu tiên thấp trước',
+  };
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
   void _reload() => setState(() => _version++);
+
+  void _onSearchChanged(String v) {
+    setState(() {}); // cập nhật nút xóa trong ô tìm kiếm
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) setState(() => _query = v.trim());
+    });
+  }
+
+  void _clearFilters() {
+    _searchCtrl.clear();
+    setState(() {
+      _query = '';
+      _status = null;
+      _priority = null;
+    });
+  }
 
   Future<void> _logout() async {
     final ok = await showDialog<bool>(
@@ -69,8 +123,116 @@ class _TaskListScreenState extends State<TaskListScreen> {
     }
   }
 
+  List<PopupMenuEntry<String>> _menuItems(Map<String, String> options, String current) => [
+        for (final e in options.entries)
+          CheckedPopupMenuItem<String>(
+            value: e.key,
+            checked: e.key == current,
+            child: Text(e.value),
+          ),
+      ];
+
+  Widget _filterChip({
+    required IconData icon,
+    required String label,
+    required bool active,
+    required Map<String, String> options,
+    required String current,
+    required ValueChanged<String> onSelected,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return PopupMenuButton<String>(
+      onSelected: onSelected,
+      itemBuilder: (_) => _menuItems(options, current),
+      child: Chip(
+        avatar: Icon(icon, size: 18),
+        label: Text(label),
+        backgroundColor: active ? scheme.primaryContainer : Colors.white,
+        side: BorderSide(color: active ? scheme.primary : scheme.outlineVariant),
+      ),
+    );
+  }
+
+  Widget _buildFilterBar() {
+    final hasFilter = _status != null || _priority != null || _query.isNotEmpty;
+
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: Column(
+            children: [
+              TextField(
+                controller: _searchCtrl,
+                onChanged: _onSearchChanged,
+                decoration: InputDecoration(
+                  hintText: 'Tìm theo tên công việc',
+                  prefixIcon: const Icon(Icons.search),
+                  isDense: true,
+                  suffixIcon: _searchCtrl.text.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchCtrl.clear();
+                            setState(() => _query = '');
+                          },
+                        ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _filterChip(
+                      icon: Icons.flag_outlined,
+                      label: _status == null ? 'Trạng thái' : _statusOptions[_status]!,
+                      active: _status != null,
+                      options: _statusOptions,
+                      current: _status ?? '',
+                      onSelected: (v) => setState(() => _status = v.isEmpty ? null : v),
+                    ),
+                    const SizedBox(width: 8),
+                    _filterChip(
+                      icon: Icons.priority_high,
+                      label: _priority == null ? 'Ưu tiên' : _priorityOptions[_priority]!,
+                      active: _priority != null,
+                      options: _priorityOptions,
+                      current: _priority ?? '',
+                      onSelected: (v) =>
+                          setState(() => _priority = v.isEmpty ? null : v),
+                    ),
+                    const SizedBox(width: 8),
+                    _filterChip(
+                      icon: Icons.sort,
+                      label: _sortOptions[_sort]!,
+                      active: _sort != 'createdAt:desc',
+                      options: _sortOptions,
+                      current: _sort,
+                      onSelected: (v) => setState(() => _sort = v),
+                    ),
+                    if (hasFilter) ...[
+                      const SizedBox(width: 8),
+                      TextButton(onPressed: _clearFilters, child: const Text('Xóa lọc')),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final sortParts = _sort.split(':');
+    final filtered = _status != null || _priority != null || _query.isNotEmpty;
+
     return DefaultTabController(
       length: _tabs.length,
       child: Scaffold(
@@ -96,10 +258,28 @@ class _TaskListScreenState extends State<TaskListScreen> {
             tabs: [for (final t in _tabs) Tab(text: t.$2)],
           ),
         ),
-        body: TabBarView(
+        body: Column(
           children: [
-            for (final t in _tabs)
-              _TaskListView(key: ValueKey('${t.$1}-$_version'), scope: t.$1),
+            _buildFilterBar(),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  for (final t in _tabs)
+                    _TaskListView(
+                      key: ValueKey(
+                        '${t.$1}-$_version-$_query-$_status-$_priority-$_sort',
+                      ),
+                      scope: t.$1,
+                      query: _query,
+                      status: _status,
+                      priority: _priority,
+                      sortBy: sortParts[0],
+                      order: sortParts[1],
+                      filtered: filtered,
+                    ),
+                ],
+              ),
+            ),
           ],
         ),
         floatingActionButton: FloatingActionButton.extended(
@@ -114,7 +294,23 @@ class _TaskListScreenState extends State<TaskListScreen> {
 
 class _TaskListView extends StatefulWidget {
   final String scope;
-  const _TaskListView({super.key, required this.scope});
+  final String query;
+  final String? status;
+  final String? priority;
+  final String sortBy;
+  final String order;
+  final bool filtered;
+
+  const _TaskListView({
+    super.key,
+    required this.scope,
+    required this.query,
+    required this.status,
+    required this.priority,
+    required this.sortBy,
+    required this.order,
+    required this.filtered,
+  });
 
   @override
   State<_TaskListView> createState() => _TaskListViewState();
@@ -131,14 +327,23 @@ class _TaskListViewState extends State<_TaskListView> {
     'shared': 'Chưa có công việc nào được chia sẻ với bạn.',
   };
 
+  Future<List<Task>> _fetch() => _service.listTasks(
+        scope: widget.scope,
+        q: widget.query,
+        status: widget.status,
+        priority: widget.priority,
+        sortBy: widget.sortBy,
+        order: widget.order,
+      );
+
   @override
   void initState() {
     super.initState();
-    _future = _service.listTasks(scope: widget.scope);
+    _future = _fetch();
   }
 
   Future<void> _refresh() async {
-    final f = _service.listTasks(scope: widget.scope);
+    final f = _fetch();
     setState(() => _future = f);
     await f.catchError((_) => <Task>[]);
   }
@@ -177,13 +382,13 @@ class _TaskListViewState extends State<_TaskListView> {
             child: ListView(
               padding: const EdgeInsets.all(32),
               children: [
-                const SizedBox(height: 80),
+                const SizedBox(height: 60),
                 Center(
                   child: CircleAvatar(
                     radius: 40,
                     backgroundColor: scheme.primaryContainer,
                     child: Icon(
-                      Icons.inbox_outlined,
+                      widget.filtered ? Icons.search_off : Icons.inbox_outlined,
                       size: 40,
                       color: scheme.onPrimaryContainer,
                     ),
@@ -191,7 +396,9 @@ class _TaskListViewState extends State<_TaskListView> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  _emptyText[widget.scope] ?? 'Chưa có công việc nào',
+                  widget.filtered
+                      ? 'Không có công việc phù hợp với bộ lọc.'
+                      : (_emptyText[widget.scope] ?? 'Chưa có công việc nào'),
                   textAlign: TextAlign.center,
                   style: TextStyle(color: scheme.onSurfaceVariant),
                 ),
@@ -210,7 +417,7 @@ class _TaskListViewState extends State<_TaskListView> {
                 constraints: const BoxConstraints(maxWidth: 640),
                 child: i == 0
                     ? _SummaryRow(tasks: tasks)
-                      : TaskCard(
+                    : TaskCard(
                         task: tasks[i - 1],
                         onTap: () async {
                           final result = await Navigator.of(context).push<String>(

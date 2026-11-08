@@ -1,5 +1,7 @@
 const Task = require('../models/Task');
 const taskService = require('../services/taskService');
+const PRIORITY_RANK = { low: 1, medium: 2, high: 3 };
+const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 exports.createTask = async (req, res, next) => {
   try {
@@ -22,24 +24,67 @@ exports.createTask = async (req, res, next) => {
 
 exports.listTasks = async (req, res, next) => {
   try {
-    const scope = req.query.scope || 'all';
+    const {
+      scope = 'all',
+      q,
+      status,
+      priority,
+      sortBy = 'createdAt',
+      order = 'desc',
+    } = req.query;
     const me = req.user._id;
 
-    let filter;
+    if (status && !['todo', 'in_progress', 'completed'].includes(status)) {
+      return res.status(400).json({ message: 'Trạng thái không hợp lệ' });
+    }
+    if (priority && !['low', 'medium', 'high'].includes(priority)) {
+      return res.status(400).json({ message: 'Mức độ ưu tiên không hợp lệ' });
+    }
+    if (!['createdAt', 'dueDate', 'priority'].includes(sortBy)) {
+      return res.status(400).json({ message: 'Tiêu chí sắp xếp không hợp lệ' });
+    }
+    if (!['asc', 'desc'].includes(order)) {
+      return res.status(400).json({ message: 'Thứ tự sắp xếp không hợp lệ' });
+    }
+
+    let base;
     if (scope === 'created') {
-      filter = { createdBy: me };
+      base = { createdBy: me };
     } else if (scope === 'assigned') {
-      filter = { assigneeIds: me };
+      base = { assigneeIds: me };
     } else if (scope === 'shared') {
       // Nhóm C sẽ bổ sung: tìm theo bảng task_shares
       return res.json({ tasks: [] });
     } else if (scope === 'all') {
-      filter = { $or: [{ createdBy: me }, { assigneeIds: me }] };
+      base = { $or: [{ createdBy: me }, { assigneeIds: me }] };
     } else {
       return res.status(400).json({ message: 'Phạm vi danh sách không hợp lệ' });
     }
 
-    const tasks = await Task.find(filter).sort({ createdAt: -1 });
+    const conditions = [base];
+    if (q && q.trim()) {
+      conditions.push({ title: { $regex: escapeRegex(q.trim()), $options: 'i' } });
+    }
+    if (status) conditions.push({ status });
+    if (priority) conditions.push({ priority });
+
+    const tasks = await Task.find({ $and: conditions });
+
+    const dir = order === 'asc' ? 1 : -1;
+    tasks.sort((a, b) => {
+      if (sortBy === 'dueDate') {
+        // Công việc chưa có hạn luôn xếp cuối
+        if (!a.dueDate && !b.dueDate) return 0;
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return (a.dueDate - b.dueDate) * dir;
+      }
+      if (sortBy === 'priority') {
+        return (PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority]) * dir;
+      }
+      return (a.createdAt - b.createdAt) * dir;
+    });
+
     res.json({ tasks });
   } catch (err) {
     next(err);

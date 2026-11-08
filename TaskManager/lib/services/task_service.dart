@@ -24,8 +24,25 @@ class TaskService {
     final data = await _api.post('/tasks', body);
     return Task.fromJson(data['task'] as Map<String, dynamic>);
   }
-    Future<List<Task>> listTasks({String scope = 'all'}) async {
-    final data = await _api.get('/tasks?scope=$scope');
+      Future<List<Task>> listTasks({
+    String scope = 'all',
+    String q = '',
+    String? status,
+    String? priority,
+    String sortBy = 'createdAt',
+    String order = 'desc',
+  }) async {
+    final params = <String, String>{
+      'scope': scope,
+      'sortBy': sortBy,
+      'order': order,
+    };
+    if (q.isNotEmpty) params['q'] = q;
+    if (status != null) params['status'] = status;
+    if (priority != null) params['priority'] = priority;
+
+    final query = Uri(queryParameters: params).query;
+    final data = await _api.get('/tasks?$query');
     final list = data['tasks'] as List<dynamic>;
     return list.map((e) => Task.fromJson(e as Map<String, dynamic>)).toList();
   }
