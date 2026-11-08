@@ -29,4 +29,34 @@ class TaskService {
     final list = data['tasks'] as List<dynamic>;
     return list.map((e) => Task.fromJson(e as Map<String, dynamic>)).toList();
   }
+
+    Future<TaskDetail> getTask(String id) async {
+    final data = await _api.get('/tasks/$id');
+    return TaskDetail(
+      task: Task.fromJson(data['task'] as Map<String, dynamic>),
+      access: TaskAccess.fromJson(data['access'] as Map<String, dynamic>),
+    );
+  }
+
+    Future<Task> updateTask(
+    String id, {
+    required String title,
+    required String description,
+    required String priority,
+    DateTime? startDate,
+    DateTime? dueDate,
+  }) async {
+    final data = await _api.put('/tasks/$id', {
+      'title': title,
+      'description': description,
+      'priority': priority,
+      'startDate': startDate == null ? null : _apiDate.format(startDate),
+      'dueDate': dueDate == null ? null : _apiDate.format(dueDate),
+    });
+    return Task.fromJson(data['task'] as Map<String, dynamic>);
+  }
+
+    Future<void> deleteTask(String id) async {
+    await _api.delete('/tasks/$id');
+  }
 }
