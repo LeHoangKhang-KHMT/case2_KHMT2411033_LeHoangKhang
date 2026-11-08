@@ -18,6 +18,7 @@ class TaskDetailScreen extends StatefulWidget {
 class _TaskDetailScreenState extends State<TaskDetailScreen> {
   final _service = TaskService();
   late Future<TaskDetail> _future;
+  bool _updating = false;
 
   @override
   void initState() {
@@ -29,15 +30,34 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     setState(() => _future = _service.getTask(widget.taskId));
   }
 
+  void _toast(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
   Future<void> _edit(Task task) async {
     final updated = await Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (_) => TaskEditScreen(task: task)),
     );
     if (updated == true && mounted) {
       _reload();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cập nhật công việc thành công')),
-      );
+      _toast('Cập nhật công việc thành công');
+    }
+  }
+
+  Future<void> _changeStatus(Task task, String status) async {
+    if (status == task.status) return;
+    setState(() => _updating = true);
+    try {
+      await _service.updateStatus(task.id, status);
+      if (!mounted) return;
+      _reload();
+      _toast('Đã cập nhật trạng thái');
+    } on ApiException catch (e) {
+      if (mounted) _toast(e.message);
+    } catch (_) {
+      if (mounted) _toast('Không kết nối được máy chủ');
+    } finally {
+      if (mounted) setState(() => _updating = false);
     }
   }
 
@@ -54,10 +74,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(
-              'Xóa',
-              style: TextStyle(color: Theme.of(ctx).colorScheme.error),
-            ),
+            child: Text('Xóa', style: TextStyle(color: Theme.of(ctx).colorScheme.error)),
           ),
         ],
       ),
@@ -69,13 +86,9 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
       if (!mounted) return;
       Navigator.of(context).pop('deleted');
     } on ApiException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) _toast(e.message);
     } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không kết nối được máy chủ')),
-      );
+      if (mounted) _toast('Không kết nối được máy chủ');
     }
   }
 
@@ -128,7 +141,12 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                 );
               }
 
-              return _DetailBody(task: detail!.task, access: detail.access);
+              return _DetailBody(
+                task: detail!.task,
+                access: detail.access,
+                updating: _updating,
+                onStatusChange: (s) => _changeStatus(detail.task, s),
+              );
             },
           ),
         );
@@ -140,8 +158,15 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
 class _DetailBody extends StatelessWidget {
   final Task task;
   final TaskAccess access;
+  final bool updating;
+  final ValueChanged<String> onStatusChange;
 
-  const _DetailBody({required this.task, required this.access});
+  const _DetailBody({
+    required this.task,
+    required this.access,
+    required this.updating,
+    required this.onStatusChange,
+  });
 
   String _date(DateTime? d) =>
       d == null ? 'Chưa đặt' : DateFormat('dd/MM/yyyy').format(d);
@@ -212,6 +237,26 @@ class _DetailBody extends StatelessWidget {
                       ),
                     ],
                   ),
+                  if (access.canUpdateStatus) ...[
+                    const SizedBox(height: 20),
+                    Text('Cập nhật trạng thái',
+                        style: Theme.of(context).textTheme.titleSmall),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: SegmentedButton<String>(
+                        showSelectedIcon: false,
+                        segments: const [
+                          ButtonSegment(value: 'todo', label: Text('Chưa làm')),
+                          ButtonSegment(value: 'in_progress', label: Text('Đang làm')),
+                          ButtonSegment(value: 'completed', label: Text('Hoàn thành')),
+                        ],
+                        selected: {task.status},
+                        onSelectionChanged:
+                            updating ? null : (s) => onStatusChange(s.first),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 20),
                   Text('Mô tả', style: Theme.of(context).textTheme.titleSmall),
                   const SizedBox(height: 6),

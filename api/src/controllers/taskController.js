@@ -137,3 +137,31 @@ exports.deleteTask = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.updateStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!taskService.isValidId(id)) {
+      return res.status(400).json({ message: 'Mã công việc không hợp lệ' });
+    }
+
+    const task = await Task.findById(id);
+    if (!task) {
+      return res.status(404).json({ message: 'Không tìm thấy công việc' });
+    }
+
+    const access = taskService.getAccess(task, req.user._id);
+    if (!access) {
+      return res.status(403).json({ message: 'Bạn không có quyền truy cập công việc này' });
+    }
+    if (!access.canUpdateStatus) {
+      return res.status(403).json({ message: 'Bạn không có quyền cập nhật trạng thái' });
+    }
+
+    task.status = req.body.status;
+    await task.save();
+    res.json({ message: 'Cập nhật trạng thái thành công', task });
+  } catch (err) {
+    next(err);
+  }
+};

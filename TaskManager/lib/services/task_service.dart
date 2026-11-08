@@ -59,4 +59,7 @@ class TaskService {
     Future<void> deleteTask(String id) async {
     await _api.delete('/tasks/$id');
   }
+    Future<void> updateStatus(String id, String status) async {
+    await _api.patch('/tasks/$id/status', {'status': status});
+  }
 }
