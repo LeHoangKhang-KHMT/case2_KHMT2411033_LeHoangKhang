@@ -34,12 +34,16 @@ class ApiClient {
     return _handle(res);
   }
 
-    Future<Map<String, dynamic>> put(String path, Map<String, dynamic> body) async {
+  Future<Map<String, dynamic>> put(String path, Map<String, dynamic> body) async {
     final res = await http.put(
       Uri.parse('$kBaseUrl$path'),
       headers: await _headers(),
       body: jsonEncode(body),
     );
+    return _handle(res);
+  }
+  Future<Map<String, dynamic>> delete(String path) async {
+    final res = await http.delete(Uri.parse('$kBaseUrl$path'), headers: await _headers());
     return _handle(res);
   }
 
