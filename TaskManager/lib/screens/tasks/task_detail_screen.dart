@@ -6,6 +6,7 @@ import '../../services/task_service.dart';
 import '../../widgets/priority_badge.dart';
 import '../../widgets/status_badge.dart';
 import 'task_edit_screen.dart';
+import '../sharing/task_sharing_screen.dart';
 
 class TaskDetailScreen extends StatefulWidget {
   final String taskId;
@@ -103,6 +104,24 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
           appBar: AppBar(
             title: const Text('Chi tiết công việc'),
             actions: [
+              if (detail != null)
+                IconButton(
+                  tooltip: 'Người tham gia',
+                  icon: const Icon(Icons.group_outlined),
+                  onPressed: () async {
+                    await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => TaskSharingScreen(
+                          taskId: detail.task.id,
+                          taskTitle: detail.task.title,
+                          canManage: detail.access.canManage,
+                        ),
+                      ),
+                    );
+                    if (mounted) _reload();
+                  },
+                ),
+
               if (detail != null && detail.access.canEdit)
                 IconButton(
                   tooltip: 'Chỉnh sửa',

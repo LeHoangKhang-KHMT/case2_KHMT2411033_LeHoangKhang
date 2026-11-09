@@ -54,12 +54,14 @@ class TaskAccess {
   final bool canEdit;
   final bool canDelete;
   final bool canUpdateStatus;
+  final bool canManage;
 
   TaskAccess({
     required this.role,
     required this.canEdit,
     required this.canDelete,
     required this.canUpdateStatus,
+    required this.canManage,
   });
 
   factory TaskAccess.fromJson(Map<String, dynamic> json) => TaskAccess(
@@ -67,12 +69,15 @@ class TaskAccess {
         canEdit: json['canEdit'] as bool,
         canDelete: json['canDelete'] as bool,
         canUpdateStatus: json['canUpdateStatus'] as bool,
+        canManage: (json['canManage'] ?? false) as bool,
       );
 
   String get roleLabel {
     switch (role) {
       case 'creator':
         return 'Người tạo';
+      case 'primary':
+        return 'Người phụ trách';
       case 'assignee':
         return 'Người được giao';
       case 'editor':

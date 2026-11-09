@@ -30,6 +30,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
   static const _tabs = [
     ('all', 'Tất cả'),
     ('created', 'Tôi tạo'),
+    ('primary', 'Tôi phụ trách'),
     ('assigned', 'Được giao'),
     ('shared', 'Được chia sẻ'),
   ];
@@ -325,6 +326,7 @@ class _TaskListViewState extends State<_TaskListView> {
     'created': 'Bạn chưa tạo công việc nào.',
     'assigned': 'Chưa có công việc nào được giao cho bạn.',
     'shared': 'Chưa có công việc nào được chia sẻ với bạn.',
+    'primary': 'Bạn chưa phụ trách công việc nào.',
   };
 
   Future<List<Task>> _fetch() => _service.listTasks(
