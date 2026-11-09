@@ -30,6 +30,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
   static const _tabs = [
     ('all', 'Tất cả'),
     ('created', 'Tôi tạo'),
+    ('primary', 'Tôi phụ trách'),
     ('assigned', 'Được giao'),
     ('shared', 'Được chia sẻ'),
   ];
@@ -325,6 +326,7 @@ class _TaskListViewState extends State<_TaskListView> {
     'created': 'Bạn chưa tạo công việc nào.',
     'assigned': 'Chưa có công việc nào được giao cho bạn.',
     'shared': 'Chưa có công việc nào được chia sẻ với bạn.',
+    'primary': 'Bạn chưa phụ trách công việc nào.',
   };
 
   Future<List<Task>> _fetch() => _service.listTasks(
@@ -425,7 +427,7 @@ class _TaskListViewState extends State<_TaskListView> {
                               builder: (_) => TaskDetailScreen(taskId: tasks[i - 1].id),
                             ),
                           );
-                          if (!mounted) return;
+                          if (!mounted || !context.mounted) return;
                           _refresh();
                           if (result == 'deleted') {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -454,7 +456,7 @@ class _SummaryRow extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 4),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
-          color: c.withOpacity(0.12),
+          color: c.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(14),
         ),
         child: Column(

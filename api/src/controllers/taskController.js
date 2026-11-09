@@ -1,5 +1,7 @@
 const Task = require('../models/Task');
+const TaskShare = require('../models/TaskShare');
 const taskService = require('../services/taskService');
+
 const PRIORITY_RANK = { low: 1, medium: 2, high: 3 };
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -47,16 +49,22 @@ exports.listTasks = async (req, res, next) => {
       return res.status(400).json({ message: 'Thứ tự sắp xếp không hợp lệ' });
     }
 
+    const shares = await TaskShare.find({ userId: me }).select('taskId');
+    const sharedIds = shares.map((s) => s.taskId);
+
     let base;
     if (scope === 'created') {
       base = { createdBy: me };
     } else if (scope === 'assigned') {
       base = { assigneeIds: me };
+    } else if (scope === 'primary') {
+      base = { primaryAssigneeId: me };
     } else if (scope === 'shared') {
-      // Nhóm C sẽ bổ sung: tìm theo bảng task_shares
-      return res.json({ tasks: [] });
+      base = { _id: { $in: sharedIds } };
     } else if (scope === 'all') {
-      base = { $or: [{ createdBy: me }, { assigneeIds: me }] };
+      base = {
+        $or: [{ createdBy: me }, { assigneeIds: me }, { _id: { $in: sharedIds } }],
+      };
     } else {
       return res.status(400).json({ message: 'Phạm vi danh sách không hợp lệ' });
     }
@@ -73,7 +81,6 @@ exports.listTasks = async (req, res, next) => {
     const dir = order === 'asc' ? 1 : -1;
     tasks.sort((a, b) => {
       if (sortBy === 'dueDate') {
-        // Công việc chưa có hạn luôn xếp cuối
         if (!a.dueDate && !b.dueDate) return 0;
         if (!a.dueDate) return 1;
         if (!b.dueDate) return -1;
@@ -107,7 +114,7 @@ exports.getTask = async (req, res, next) => {
       return res.status(404).json({ message: 'Không tìm thấy công việc' });
     }
 
-    const access = taskService.getAccess(task, req.user._id);
+    const access = await taskService.getAccess(task, req.user._id);
     if (!access) {
       return res.status(403).json({ message: 'Bạn không có quyền truy cập công việc này' });
     }
@@ -120,20 +127,10 @@ exports.getTask = async (req, res, next) => {
 
 exports.updateTask = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    if (!taskService.isValidId(id)) {
-      return res.status(400).json({ message: 'Mã công việc không hợp lệ' });
-    }
+    const ctx = await taskService.loadTask(req, res);
+    if (!ctx) return;
+    const { task, access } = ctx;
 
-    const task = await Task.findById(id);
-    if (!task) {
-      return res.status(404).json({ message: 'Không tìm thấy công việc' });
-    }
-
-    const access = taskService.getAccess(task, req.user._id);
-    if (!access) {
-      return res.status(403).json({ message: 'Bạn không có quyền truy cập công việc này' });
-    }
     if (!access.canEdit) {
       return res.status(403).json({ message: 'Bạn không có quyền chỉnh sửa công việc này' });
     }
@@ -158,24 +155,15 @@ exports.updateTask = async (req, res, next) => {
 
 exports.deleteTask = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    if (!taskService.isValidId(id)) {
-      return res.status(400).json({ message: 'Mã công việc không hợp lệ' });
-    }
+    const ctx = await taskService.loadTask(req, res);
+    if (!ctx) return;
+    const { task, access } = ctx;
 
-    const task = await Task.findById(id);
-    if (!task) {
-      return res.status(404).json({ message: 'Không tìm thấy công việc' });
-    }
-
-    const access = taskService.getAccess(task, req.user._id);
-    if (!access) {
-      return res.status(403).json({ message: 'Bạn không có quyền truy cập công việc này' });
-    }
     if (!access.canDelete) {
       return res.status(403).json({ message: 'Bạn không có quyền xóa công việc này' });
     }
 
+    await TaskShare.deleteMany({ taskId: task._id });
     await task.deleteOne();
     res.json({ message: 'Xóa công việc thành công' });
   } catch (err) {
@@ -185,20 +173,10 @@ exports.deleteTask = async (req, res, next) => {
 
 exports.updateStatus = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    if (!taskService.isValidId(id)) {
-      return res.status(400).json({ message: 'Mã công việc không hợp lệ' });
-    }
+    const ctx = await taskService.loadTask(req, res);
+    if (!ctx) return;
+    const { task, access } = ctx;
 
-    const task = await Task.findById(id);
-    if (!task) {
-      return res.status(404).json({ message: 'Không tìm thấy công việc' });
-    }
-
-    const access = taskService.getAccess(task, req.user._id);
-    if (!access) {
-      return res.status(403).json({ message: 'Bạn không có quyền truy cập công việc này' });
-    }
     if (!access.canUpdateStatus) {
       return res.status(403).json({ message: 'Bạn không có quyền cập nhật trạng thái' });
     }

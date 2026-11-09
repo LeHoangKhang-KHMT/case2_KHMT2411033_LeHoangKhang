@@ -12,6 +12,9 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
+router.use('/:id/assignees', require('./assignmentRoutes'));
+router.use('/:id/shares', require('./taskShareRoutes'));
+
 router.get('/', taskController.listTasks);
 router.post('/', createTaskRules, handleValidation, taskController.createTask);
 router.get('/:id', taskController.getTask);
