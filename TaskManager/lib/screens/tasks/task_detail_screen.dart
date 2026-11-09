@@ -92,44 +92,6 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     }
   }
 
-  Future<void> _delete(Task task) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Xóa công việc'),
-        content: Text('Bạn có chắc muốn xóa "${task.title}"? Thao tác này không thể hoàn tác.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Hủy'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(
-              'Xóa',
-              style: TextStyle(color: Theme.of(ctx).colorScheme.error),
-            ),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-
-    try {
-      await _service.deleteTask(task.id);
-      if (!mounted) return;
-      Navigator.of(context).pop('deleted');
-    } on ApiException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không kết nối được máy chủ')),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<TaskDetail>(

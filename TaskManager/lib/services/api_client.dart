@@ -42,10 +42,6 @@ class ApiClient {
     );
     return _handle(res);
   }
-  Future<Map<String, dynamic>> delete(String path) async {
-    final res = await http.delete(Uri.parse('$kBaseUrl$path'), headers: await _headers());
-    return _handle(res);
-  }
 
   Future<Map<String, dynamic>> patch(String path, Map<String, dynamic> body) async {
     final res = await http.patch(
