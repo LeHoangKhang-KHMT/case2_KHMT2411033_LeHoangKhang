@@ -27,3 +27,9 @@ exports.updateTaskRules = [
   body('startDate').optional({ nullable: true }).isISO8601().withMessage('Ngày bắt đầu không hợp lệ'),
   body('dueDate').optional({ nullable: true }).isISO8601().withMessage('Hạn hoàn thành không hợp lệ'),
 ];
+
+exports.updateStatusRules = [
+  body('status')
+    .isIn(['todo', 'in_progress', 'completed'])
+    .withMessage('Trạng thái không hợp lệ'),
+];
