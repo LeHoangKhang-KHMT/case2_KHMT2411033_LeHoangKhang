@@ -1,6 +1,9 @@
 const Task = require('../models/Task');
 const TaskShare = require('../models/TaskShare');
 const taskService = require('../services/taskService');
+const Notification = require('../models/Notification');
+const notificationService = require('../services/notificationService');
+const { formatDate } = require('../utils/emailTemplates');
 
 const PRIORITY_RANK = { low: 1, medium: 2, high: 3 };
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -135,6 +138,7 @@ exports.updateTask = async (req, res, next) => {
       return res.status(403).json({ message: 'Bạn không có quyền chỉnh sửa công việc này' });
     }
 
+    const oldDue = task.dueDate ? task.dueDate.getTime() : null;
     const { title, description, priority, startDate, dueDate } = req.body;
     if (title !== undefined) task.title = title;
     if (description !== undefined) task.description = description;
@@ -147,6 +151,20 @@ exports.updateTask = async (req, res, next) => {
     }
 
     await task.save();
+    const newDue = task.dueDate ? task.dueDate.getTime() : null;
+    if (oldDue !== newDue) {
+      task.reminderSentAt = null;
+      await task.save();
+      notificationService
+        .notifyParticipants({
+          actor: req.user,
+          task,
+          type: 'due_date_changed',
+          title: 'Hạn hoàn thành đã thay đổi',
+          message: `${req.user.fullName} đã đổi hạn công việc "${task.title}". Hạn mới: ${formatDate(task.dueDate)}.`,
+        })
+        .catch(console.error);
+    }
     res.json({ message: 'Cập nhật công việc thành công', task });
   } catch (err) {
     next(err);
@@ -164,6 +182,7 @@ exports.deleteTask = async (req, res, next) => {
     }
 
     await TaskShare.deleteMany({ taskId: task._id });
+    await Notification.deleteMany({ taskId: task._id });
     await task.deleteOne();
     res.json({ message: 'Xóa công việc thành công' });
   } catch (err) {
@@ -181,8 +200,21 @@ exports.updateStatus = async (req, res, next) => {
       return res.status(403).json({ message: 'Bạn không có quyền cập nhật trạng thái' });
     }
 
+    const oldStatus = task.status;
     task.status = req.body.status;
     await task.save();
+
+    if (task.status === 'completed' && oldStatus !== 'completed') {
+      notificationService
+        .notifyParticipants({
+          actor: req.user,
+          task,
+          type: 'task_completed',
+          title: 'Công việc đã hoàn thành',
+          message: `${req.user.fullName} đã đánh dấu hoàn thành công việc "${task.title}".`,
+        })
+        .catch(console.error);
+    }
     res.json({ message: 'Cập nhật trạng thái thành công', task });
   } catch (err) {
     next(err);
