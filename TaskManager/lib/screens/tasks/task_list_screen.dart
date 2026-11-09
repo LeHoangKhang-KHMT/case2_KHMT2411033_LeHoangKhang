@@ -425,7 +425,7 @@ class _TaskListViewState extends State<_TaskListView> {
                               builder: (_) => TaskDetailScreen(taskId: tasks[i - 1].id),
                             ),
                           );
-                          if (!mounted) return;
+                          if (!mounted || !context.mounted) return;
                           _refresh();
                           if (result == 'deleted') {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -454,7 +454,7 @@ class _SummaryRow extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 4),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
-          color: c.withOpacity(0.12),
+          color: c.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(14),
         ),
         child: Column(
