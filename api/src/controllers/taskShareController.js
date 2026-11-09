@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const TaskShare = require('../models/TaskShare');
 const taskService = require('../services/taskService');
+const notificationService = require('../services/notificationService');
 
 const PERMISSIONS = ['viewer', 'editor'];
 
@@ -65,12 +66,30 @@ exports.add = async (req, res, next) => {
     // Không chia sẻ cho chính người tạo
     const targets = users.filter((u) => String(u._id) !== String(task.createdBy));
 
+    const changed = [];
     for (const u of targets) {
+      const existing = await TaskShare.findOne({ taskId: task._id, userId: u._id });
+      if (!existing || existing.permission !== permission) changed.push(u);
+
       await TaskShare.findOneAndUpdate(
         { taskId: task._id, userId: u._id },
         { permission, sharedBy: req.user._id },
         { upsert: true, new: true, setDefaultsOnInsert: true }
       );
+    }
+
+    if (changed.length > 0) {
+      const label = permission === 'editor' ? 'chỉnh sửa' : 'chỉ xem';
+      notificationService
+        .notifyUsers({
+          actor: req.user,
+          users: changed,
+          task,
+          type: 'task_shared',
+          title: 'Bạn được mời tham gia công việc',
+          message: `${req.user.fullName} đã chia sẻ công việc "${task.title}" với quyền ${label}.`,
+        })
+        .catch(console.error);
     }
 
     res.json({

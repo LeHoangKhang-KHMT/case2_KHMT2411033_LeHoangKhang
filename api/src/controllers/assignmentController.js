@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const taskService = require('../services/taskService');
+const notificationService = require('../services/notificationService');
 
 const normalizeEmails = (v) => [
   ...new Set(
@@ -48,12 +49,27 @@ exports.add = async (req, res, next) => {
     const found = new Set(users.map((u) => u.email));
     const notFound = emails.filter((e) => !found.has(e));
 
+    const added = [];
     for (const u of users) {
       if (!task.assigneeIds.some((a) => String(a) === String(u._id))) {
         task.assigneeIds.push(u._id);
+        added.push(u);
       }
     }
     await task.save();
+
+    if (added.length > 0) {
+      notificationService
+        .notifyUsers({
+          actor: req.user,
+          users: added,
+          task,
+          type: 'task_assigned',
+          title: 'Bạn được giao công việc mới',
+          message: `${req.user.fullName} đã giao cho bạn công việc "${task.title}".`,
+        })
+        .catch(console.error);
+    }
 
     res.json({
       message: 'Giao việc thành công',

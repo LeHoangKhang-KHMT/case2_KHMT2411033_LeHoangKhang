@@ -10,6 +10,8 @@ import '../auth/login_screen.dart';
 import '../profile/profile_screen.dart';
 import 'task_create_screen.dart';
 import 'task_detail_screen.dart';
+import '../../services/notification_service.dart';
+import '../notifications/notification_screen.dart';
 
 class TaskListScreen extends StatefulWidget {
   const TaskListScreen({super.key});
@@ -25,6 +27,9 @@ class _TaskListScreenState extends State<TaskListScreen> {
   String? _priority;
   String _sort = 'createdAt:desc';
   Timer? _debounce;
+  Timer? _poll;
+  int _unread = 0;
+  final _notifService = NotificationService();
   final _searchCtrl = TextEditingController();
 
   static const _tabs = [
@@ -59,10 +64,25 @@ class _TaskListScreenState extends State<TaskListScreen> {
   };
 
   @override
+  void initState() {
+    super.initState();
+    _loadUnread();
+    _poll = Timer.periodic(const Duration(seconds: 30), (_) => _loadUnread());
+  }
+
+  @override
   void dispose() {
+    _poll?.cancel();
     _debounce?.cancel();
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadUnread() async {
+    try {
+      final n = await _notifService.unreadCount();
+      if (mounted) setState(() => _unread = n);
+    } catch (_) {}
   }
 
   void _reload() => setState(() => _version++);
@@ -240,6 +260,20 @@ class _TaskListScreenState extends State<TaskListScreen> {
         appBar: AppBar(
           title: const Text('Công việc'),
           actions: [
+            IconButton(
+              tooltip: 'Thông báo',
+              icon: Badge.count(
+                count: _unread,
+                isLabelVisible: _unread > 0,
+                child: const Icon(Icons.notifications_outlined),
+              ),
+              onPressed: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const NotificationScreen()),
+                );
+                _loadUnread();
+              },
+            ),
             IconButton(
               tooltip: 'Thông tin cá nhân',
               icon: const Icon(Icons.person_outline),
