@@ -19,6 +19,7 @@ app.use('/api/tasks', require('./routes/taskRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/email-logs', require('./routes/emailLogRoutes'));
+app.use('/api/statistics', require('./routes/statisticsRoutes'));
 app.use(errorMiddleware);
 
 module.exports = app;
