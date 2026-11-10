@@ -4,6 +4,8 @@ const taskService = require('../services/taskService');
 const Notification = require('../models/Notification');
 const notificationService = require('../services/notificationService');
 const { formatDate } = require('../utils/emailTemplates');
+const TaskActivity = require('../models/TaskActivity');
+const activityService = require('../services/activityService');
 
 const PRIORITY_RANK = { low: 1, medium: 2, high: 3 };
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -13,6 +15,7 @@ exports.createTask = async (req, res, next) => {
     const { title, description, priority, startDate, dueDate } = req.body;
 
     const task = await Task.create({
+      
       title,
       description,
       priority,
@@ -20,6 +23,13 @@ exports.createTask = async (req, res, next) => {
       dueDate: dueDate || null,
       createdBy: req.user._id,
     });
+    
+      activityService.log({
+      taskId: task._id,
+      userId: req.user._id,
+      action: 'task_created',
+      details: { title: task.title },
+      });
 
     res.status(201).json({ message: 'Tạo công việc thành công', task });
   } catch (err) {
@@ -138,6 +148,14 @@ exports.updateTask = async (req, res, next) => {
       return res.status(403).json({ message: 'Bạn không có quyền chỉnh sửa công việc này' });
     }
 
+    const before = {
+        title: task.title,
+        description: task.description,
+        priority: task.priority,
+        startDate: task.startDate ? task.startDate.getTime() : null,
+        dueDate: task.dueDate ? task.dueDate.getTime() : null,
+    };
+
     const oldDue = task.dueDate ? task.dueDate.getTime() : null;
     const { title, description, priority, startDate, dueDate } = req.body;
     if (title !== undefined) task.title = title;
@@ -151,6 +169,26 @@ exports.updateTask = async (req, res, next) => {
     }
 
     await task.save();
+    const changedFields = [];
+    if (before.title !== task.title) changedFields.push('title');
+    if (before.description !== task.description) changedFields.push('description');
+    if (before.priority !== task.priority) changedFields.push('priority');
+    if (before.startDate !== (task.startDate ? task.startDate.getTime() : null)) {
+      changedFields.push('startDate');
+    }
+    if (before.dueDate !== (task.dueDate ? task.dueDate.getTime() : null)) {
+      changedFields.push('dueDate');
+    }
+    if (changedFields.length > 0) {
+      activityService.log({
+        taskId: task._id,
+        userId: req.user._id,
+        action: 'task_updated',
+        details: { fields: changedFields },
+      });
+    }
+
+    
     const newDue = task.dueDate ? task.dueDate.getTime() : null;
     if (oldDue !== newDue) {
       task.reminderSentAt = null;
@@ -183,6 +221,7 @@ exports.deleteTask = async (req, res, next) => {
 
     await TaskShare.deleteMany({ taskId: task._id });
     await Notification.deleteMany({ taskId: task._id });
+    await TaskActivity.deleteMany({ taskId: task._id });
     await task.deleteOne();
     res.json({ message: 'Xóa công việc thành công' });
   } catch (err) {
@@ -203,6 +242,14 @@ exports.updateStatus = async (req, res, next) => {
     const oldStatus = task.status;
     task.status = req.body.status;
     await task.save();
+      if (oldStatus !== task.status) {
+        activityService.log({
+          taskId: task._id,
+          userId: req.user._id,
+          action: 'status_changed',
+          details: { from: oldStatus, to: task.status },
+        });
+      }
 
     if (task.status === 'completed' && oldStatus !== 'completed') {
       notificationService

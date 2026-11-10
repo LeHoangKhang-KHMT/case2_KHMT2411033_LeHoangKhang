@@ -2,6 +2,7 @@ const User = require('../models/User');
 const TaskShare = require('../models/TaskShare');
 const taskService = require('../services/taskService');
 const notificationService = require('../services/notificationService');
+const activityService = require('../services/activityService');
 
 const PERMISSIONS = ['viewer', 'editor'];
 
@@ -79,6 +80,12 @@ exports.add = async (req, res, next) => {
     }
 
     if (changed.length > 0) {
+        activityService.log({
+          taskId: task._id,
+          userId: req.user._id,
+          action: 'task_shared',
+          details: { users: changed.map((u) => u.fullName), permission },
+        });
       const label = permission === 'editor' ? 'chỉnh sửa' : 'chỉ xem';
       notificationService
         .notifyUsers({
@@ -123,6 +130,13 @@ exports.update = async (req, res, next) => {
 
     share.permission = req.body.permission;
     await share.save();
+      const target = await User.findById(share.userId).select('fullName');
+      activityService.log({
+        taskId: task._id,
+        userId: req.user._id,
+        action: 'share_permission_changed',
+        details: { userName: target ? target.fullName : '', permission: share.permission },
+      });
 
     res.json({ message: 'Đã đổi quyền', shares: await buildList(task._id) });
   } catch (err) {
@@ -145,6 +159,13 @@ exports.remove = async (req, res, next) => {
     if (!share) {
       return res.status(404).json({ message: 'Không tìm thấy bản ghi chia sẻ' });
     }
+    const target = await User.findById(share.userId).select('fullName');
+    activityService.log({
+      taskId: task._id,
+      userId: req.user._id,
+      action: 'share_revoked',
+      details: { userName: target ? target.fullName : '' },
+    });
 
     res.json({ message: 'Đã thu hồi quyền chia sẻ', shares: await buildList(task._id) });
   } catch (err) {

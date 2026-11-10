@@ -7,6 +7,7 @@ import '../../widgets/priority_badge.dart';
 import '../../widgets/status_badge.dart';
 import 'task_edit_screen.dart';
 import '../sharing/task_sharing_screen.dart';
+import 'task_activity_screen.dart';
 
 class TaskDetailScreen extends StatefulWidget {
   final String taskId;
@@ -104,6 +105,19 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
           appBar: AppBar(
             title: const Text('Chi tiết công việc'),
             actions: [
+              if (detail != null)
+                IconButton(
+                  tooltip: 'Lịch sử hoạt động',
+                  icon: const Icon(Icons.history),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => TaskActivityScreen(
+                        taskId: detail.task.id,
+                        taskTitle: detail.task.title,
+                      ),
+                    ),
+                  ),
+                ),
               if (detail != null)
                 IconButton(
                   tooltip: 'Người tham gia',

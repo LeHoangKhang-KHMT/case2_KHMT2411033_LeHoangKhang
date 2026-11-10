@@ -1,7 +1,7 @@
 const User = require('../models/User');
 const taskService = require('../services/taskService');
 const notificationService = require('../services/notificationService');
-
+const activityService = require('../services/activityService');
 const normalizeEmails = (v) => [
   ...new Set(
     (Array.isArray(v) ? v : [])
@@ -59,6 +59,12 @@ exports.add = async (req, res, next) => {
     await task.save();
 
     if (added.length > 0) {
+      activityService.log({
+          taskId: task._id,
+          userId: req.user._id,
+          action: 'task_assigned',
+          details: { users: added.map((u) => u.fullName) },
+      });
       notificationService
         .notifyUsers({
           actor: req.user,
@@ -101,6 +107,13 @@ exports.setPrimary = async (req, res, next) => {
       task.primaryAssigneeId = null;
     }
     await task.save();
+      const target = await User.findById(userId).select('fullName');
+      activityService.log({
+        taskId: task._id,
+        userId: req.user._id,
+        action: req.body.isPrimary !== false ? 'primary_set' : 'primary_unset',
+        details: { userName: target ? target.fullName : '' },
+      });
 
     res.json({ message: 'Cập nhật người phụ trách thành công', assignees: await buildList(task) });
   } catch (err) {
@@ -124,6 +137,13 @@ exports.remove = async (req, res, next) => {
       task.primaryAssigneeId = null;
     }
     await task.save();
+      const target = await User.findById(userId).select('fullName');
+      activityService.log({
+        taskId: task._id,
+        userId: req.user._id,
+        action: 'assignee_removed',
+        details: { userName: target ? target.fullName : '' },
+      });
 
     res.json({ message: 'Đã hủy giao việc', assignees: await buildList(task) });
   } catch (err) {
