@@ -1,6 +1,7 @@
 import 'package:intl/intl.dart';
 import '../models/task.dart';
 import 'api_client.dart';
+import '../models/task_activity.dart';
 
 class TaskService {
   final ApiClient _api = ApiClient();
@@ -78,5 +79,11 @@ class TaskService {
   }
     Future<void> updateStatus(String id, String status) async {
     await _api.patch('/tasks/$id/status', {'status': status});
+  }
+    Future<List<TaskActivity>> activities(String taskId) async {
+    final data = await _api.get('/tasks/$taskId/activities');
+    return (data['activities'] as List<dynamic>)
+        .map((e) => TaskActivity.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 }

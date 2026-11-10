@@ -12,6 +12,7 @@ import 'task_create_screen.dart';
 import 'task_detail_screen.dart';
 import '../../services/notification_service.dart';
 import '../notifications/notification_screen.dart';
+import '../profile/statistics_screen.dart';
 
 class TaskListScreen extends StatefulWidget {
   const TaskListScreen({super.key});
@@ -260,6 +261,13 @@ class _TaskListScreenState extends State<TaskListScreen> {
         appBar: AppBar(
           title: const Text('Công việc'),
           actions: [
+            IconButton(
+              tooltip: 'Thống kê',
+              icon: const Icon(Icons.insights_outlined),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const StatisticsScreen()),
+              ),
+            ),
             IconButton(
               tooltip: 'Thông báo',
               icon: Badge.count(
