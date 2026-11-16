@@ -36,7 +36,9 @@ class _TaskActivityScreenState extends State<TaskActivityScreen> {
 
   Future<void> _refresh() async {
     final f = _service.activities(widget.taskId);
-    setState(() => _future = f);
+    setState(() {
+      _future = f;
+    });
     await f.catchError((_) => <TaskActivity>[]);
   }
 

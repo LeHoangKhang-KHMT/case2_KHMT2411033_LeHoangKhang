@@ -41,7 +41,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
   Future<void> _refresh() async {
     final f = _load();
-    setState(() => _future = f);
+    setState(() {
+      _future = f;
+    });
     await f.catchError((_) => _Data({}, {}, {}));
   }
 

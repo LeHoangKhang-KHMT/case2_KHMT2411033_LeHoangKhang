@@ -29,7 +29,9 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   }
 
   void _reload() {
-    setState(() => _future = _service.getTask(widget.taskId));
+    setState(() {
+      _future = _service.getTask(widget.taskId);
+    });
   }
 
   void _toast(String msg) {

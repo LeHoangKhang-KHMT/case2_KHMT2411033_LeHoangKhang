@@ -388,7 +388,9 @@ class _TaskListViewState extends State<_TaskListView> {
 
   Future<void> _refresh() async {
     final f = _fetch();
-    setState(() => _future = f);
+    setState(() {
+      _future = f;
+    });
     await f.catchError((_) => <Task>[]);
   }
 
